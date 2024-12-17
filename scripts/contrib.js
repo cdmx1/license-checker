@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
 const join = require('path').join;
 const format = require('format-package-json');
 const GitContributors = require('git-contributors').GitContributors;
