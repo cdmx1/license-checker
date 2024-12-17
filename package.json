@@ -5,7 +5,6 @@
     "version": "0.1.0",
     "license": "BSD-3-Clause",
     "private": false,
-    "type": "module",
     "engines": {
         "npm": ">=8",
         "node": ">=18"
