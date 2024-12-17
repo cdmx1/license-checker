@@ -15,6 +15,10 @@ export interface InitOpts {
      */
     development?: boolean | undefined;
     /**
+     * Output for defect dojo
+    */
+    defectdojo?: boolean | undefined;
+    /**
      * Report guessed licenses as unknown licenses
      */
     unknown?: boolean | undefined;
