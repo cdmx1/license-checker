@@ -1,3 +1,5 @@
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
 const assert = require('assert');
 const util = require('util');
 const getLicenseTitle = require('../lib/getLicenseTitle');
