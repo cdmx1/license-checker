@@ -37,11 +37,11 @@
     },
     "preferGlobal": true,
     "bugs": {
-        "url": "http://github.com/RSeidelsohn/license-checker-rseidelsohn/issues"
+        "url": "https://github.com/cdmx1/license-checker/issues"
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/RSeidelsohn/license-checker-rseidelsohn.git"
+        "url": "https://github.com/cdmx1/license-checker"
     },
     "nyc": {
         "check-coverage": true,
@@ -166,4 +166,3 @@
         "rimraf": "^3.0.2"
     }
 }
-
