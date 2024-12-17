@@ -1,20 +1,23 @@
-import assert, { equal, ok, notEqual, strictEqual, notStrictEqual } from 'assert';
-import { join, resolve } from 'path';
-import { isError } from 'util';
-import { init, print, asCSV, asMarkDown, asTree, asSummary, asFiles, asPlainVertical, parseJson, filterAttributes } from '../lib/index';
-import args, { parse, start as _start } from '../lib/args';
-import { supportsColor } from 'chalk';
-import { existsSync, unlinkSync, readFileSync, readdirSync } from 'fs';
-const pkgPath = join(__dirname, '../package.json');
-const pkgJson = require(pkgPath);
+import assert from 'assert'
+import path from 'path'
+import util from 'util'
+import * as checker from '../lib/index.js'
+import * as args from '../lib/args.js'
+import chalk from 'chalk'
+import fs from 'fs'
+import pkgJson from '../package.json' assert { type: 'json' }
+import { tmpdir } from 'os'
+import rimraf from 'rimraf'
+
+const __dirname = path.dirname(new URL(import.meta.url).pathname)
 
 describe('main tests', function () {
     it('should load init', function () {
-        equal(typeof init, 'function');
+        assert.equal(typeof checker.init, 'function');
     });
 
     it('should load print', function () {
-        equal(typeof print, 'function');
+        assert.equal(typeof checker.print, 'function');
     });
 
     describe('should parse local with unknown', function () {
@@ -23,9 +26,9 @@ describe('main tests', function () {
         before(function (done) {
             this.timeout(5000);
 
-            init(
+            checker.init(
                 {
-                    start: join(__dirname, '../'),
+                    start: path.join(__dirname, '../'),
                 },
                 function (err, sorted) {
                     output = sorted;
@@ -35,19 +38,19 @@ describe('main tests', function () {
         });
 
         it('and give us results', function () {
-            ok(Object.keys(output).length > 70);
-            equal(output['abbrev@1.0.9'].licenses, 'ISC');
+            assert.ok(Object.keys(output).length > 70);
+            assert.equal(output['abbrev@1.0.9'].licenses, 'ISC');
         });
 
         it('and convert to CSV', function () {
-            const str = asCSV(output);
-            equal(str.split('\n')[0], '"module name","license","repository"');
-            equal(str.split('\n')[1], '"@ampproject/remapping@2.2.1","Apache-2.0","https://github.com/ampproject/remapping"');
+            const str = checker.asCSV(output);
+            assert.equal(str.split('\n')[0], '"module name","license","repository"');
+            assert.equal(str.split('\n')[1], '"@babel/code-frame@7.22.13","MIT","https://github.com/babel/babel"');
         });
 
         it('and convert to MarkDown', function () {
-            const str = asMarkDown(output);
-            equal(str.split('\n')[0], '- [@ampproject/remapping@2.2.1](https://github.com/ampproject/remapping) - Apache-2.0');
+            const str = checker.asMarkDown(output);
+            assert.equal(str.split('\n')[0], '- [@babel/code-frame@7.22.13](https://github.com/babel/babel) - MIT');
         });
     });
 
@@ -61,9 +64,9 @@ describe('main tests', function () {
                 pewpew: '<<Should Never be set>>',
             };
 
-            init(
+            checker.init(
                 {
-                    start: join(__dirname, '../'),
+                    start: path.join(__dirname, '../'),
                     customFormat: format,
                 },
                 function (err, sorted) {
@@ -74,8 +77,8 @@ describe('main tests', function () {
         });
 
         it('and give us results', function () {
-            ok(Object.keys(output).length > 70);
-            equal(output['abbrev@1.0.9'].description, "Like ruby's abbrev module, but in js");
+            assert.ok(Object.keys(output).length > 70);
+            assert.equal(output['abbrev@1.0.9'].description, "Like ruby's abbrev module, but in js");
         });
 
         it('and convert to CSV', function () {
@@ -85,11 +88,11 @@ describe('main tests', function () {
                 pewpew: '<<Should Never be set>>',
             };
 
-            const str = asCSV(output, format);
-            equal(str.split('\n')[0], '"module name","name","description","pewpew"');
-            equal(
+            const str = checker.asCSV(output, format);
+            assert.equal(str.split('\n')[0], '"module name","name","description","pewpew"');
+            assert.equal(
                 str.split('\n')[1],
-                '"@ampproject/remapping@2.2.1","@ampproject/remapping","Remap sequential sourcemaps through transformations to point at the original source code","<<Should Never be set>>"',
+                '"@babel/code-frame@7.22.13","@babel/code-frame","Generate errors that contain a code frame that point to source locations.","<<Should Never be set>>"',
             );
         });
 
@@ -100,11 +103,11 @@ describe('main tests', function () {
                 pewpew: '<<Should Never be set>>',
             };
 
-            const str = asCSV(output, format, 'main-module');
-            equal(str.split('\n')[0], '"component","module name","name","description","pewpew"');
-            equal(
+            const str = checker.asCSV(output, format, 'main-module');
+            assert.equal(str.split('\n')[0], '"component","module name","name","description","pewpew"');
+            assert.equal(
                 str.split('\n')[1],
-                '"main-module","@ampproject/remapping@2.2.1","@ampproject/remapping","Remap sequential sourcemaps through transformations to point at the original source code","<<Should Never be set>>"',
+                '"main-module","@babel/code-frame@7.22.13","@babel/code-frame","Generate errors that contain a code frame that point to source locations.","<<Should Never be set>>"',
             );
         });
 
@@ -115,8 +118,8 @@ describe('main tests', function () {
                 pewpew: '<<Should Never be set>>',
             };
 
-            const str = asMarkDown(output, format);
-            equal(str.split('\n')[0], '- **[@ampproject/remapping@2.2.1](https://github.com/ampproject/remapping)**');
+            const str = checker.asMarkDown(output, format);
+            assert.equal(str.split('\n')[0], '- **[@babel/code-frame@7.22.13](https://github.com/babel/babel)**');
         });
     });
 
@@ -124,9 +127,9 @@ describe('main tests', function () {
         let output;
 
         before(function (done) {
-            init(
+            checker.init(
                 {
-                    start: join(__dirname, '../'),
+                    start: path.join(__dirname, '../'),
                     unknown: true,
                 },
                 function (err, sorted) {
@@ -137,8 +140,8 @@ describe('main tests', function () {
         });
 
         it('should give us results', function () {
-            ok(output);
-            ok(Object.keys(output).length > 20);
+            assert.ok(output);
+            assert.ok(Object.keys(output).length > 20);
         });
     });
 
@@ -146,9 +149,9 @@ describe('main tests', function () {
         let output;
 
         before(function (done) {
-            init(
+            checker.init(
                 {
-                    start: join(__dirname, '../'),
+                    start: path.join(__dirname, '../'),
                     direct: 0, // 0 is the parsed value passed to init from license-checker-rseidelsohn if set to true
                 },
                 function (err, sorted) {
@@ -165,18 +168,18 @@ describe('main tests', function () {
                 Object.keys(pkgJson.peerDependencies || {}).length;
             // all and only the dependencies listed in the package.json should be included in the output,
             // plus the main module itself
-            ok(Object.keys(output).length === pkgDepsNumber + 1);
-            equal(typeof output['abbrev@1.0.9'], 'undefined');
+            assert.ok(Object.keys(output).length === pkgDepsNumber + 1);
+            assert.equal(typeof output['abbrev@1.0.9'], 'undefined');
         });
     });
 
     describe('should write output to files in programmatic usage', function () {
-        const tmpFileName = join(__dirname, 'tmp_output.json');
+        const tmpFileName = path.join(__dirname, 'tmp_output.json');
 
         before(function (done) {
-            init(
+            checker.init(
                 {
-                    start: join(__dirname, '../'),
+                    start: path.join(__dirname, '../'),
                     json: true,
                     out: tmpFileName,
                 },
@@ -187,26 +190,26 @@ describe('main tests', function () {
         });
 
         after(() => {
-            if (existsSync(tmpFileName)) {
-                unlinkSync(tmpFileName);
+            if (fs.existsSync(tmpFileName)) {
+                fs.unlinkSync(tmpFileName);
             }
         });
 
         it('and the file should contain parseable JSON', function () {
-            ok(existsSync(tmpFileName));
+            assert.ok(fs.existsSync(tmpFileName));
 
-            const outputTxt = readFileSync(tmpFileName, 'utf8');
+            const outputTxt = fs.readFileSync(tmpFileName, 'utf8');
             const outputJson = JSON.parse(outputTxt);
 
-            equal(typeof outputJson, 'object');
+            assert.equal(typeof outputJson, 'object');
         });
     });
 
     function parseAndExclude(parsePath, licenses, result) {
         return function (done) {
-            init(
+            checker.init(
                 {
-                    start: join(__dirname, parsePath),
+                    start: path.join(__dirname, parsePath),
                     excludeLicenses: licenses,
                 },
                 function (err, filtered) {
@@ -229,7 +232,7 @@ describe('main tests', function () {
                 if (output[item].licenses && (output[item].licenses === 'MIT' || output[item].licenses === 'ISC'))
                     excluded = false;
             });
-            ok(excluded);
+            assert.ok(excluded);
         });
     });
 
@@ -245,7 +248,7 @@ describe('main tests', function () {
                     excluded = false;
                 }
             });
-            ok(excluded);
+            assert.ok(excluded);
         });
     });
 
@@ -261,7 +264,7 @@ describe('main tests', function () {
                     excluded = false;
                 }
             });
-            ok(excluded);
+            assert.ok(excluded);
         });
     });
 
@@ -277,7 +280,7 @@ describe('main tests', function () {
                     excluded = false;
                 }
             });
-            ok(excluded);
+            assert.ok(excluded);
         });
     });
 
@@ -293,7 +296,7 @@ describe('main tests', function () {
                     excluded = false;
                 }
             });
-            ok(!excluded);
+            assert.ok(!excluded);
         });
     });
 
@@ -304,10 +307,10 @@ describe('main tests', function () {
                 exitCode = code;
             };
             const config = {
-                start: join(__dirname, parsePath),
+                start: path.join(__dirname, parsePath),
             };
             config[key] = licenses;
-            init(config, function (err, filtered) {
+            checker.init(config, function (err, filtered) {
                 result.output = filtered;
                 result.exitCode = exitCode;
                 done();
@@ -320,7 +323,7 @@ describe('main tests', function () {
         before(parseAndFailOn('onlyAllow', '../', 'MIT; ISC', result));
 
         it('should exit on non MIT and ISC licensed modules from results', function () {
-            equal(result.exitCode, 1);
+            assert.equal(result.exitCode, 1);
         });
     });
 
@@ -329,7 +332,7 @@ describe('main tests', function () {
         before(parseAndFailOn('onlyAllow', '../', 'ISC', result));
 
         it('should exit on non ISC licensed modules from results', function () {
-            equal(result.exitCode, 1);
+            assert.equal(result.exitCode, 1);
         });
     });
 
@@ -344,13 +347,13 @@ describe('main tests', function () {
                 'Public Domain;Custom: http://i.imgur.com/goJdO.png;WTFPL*;Apache License, Version 2.0;' +
                 'WTFPL;(MIT AND CC-BY-3.0);Custom: https://github.com/substack/node-browserify;' +
                 '(AFL-2.1 OR BSD-3-Clause);MIT*;0BSD;(MIT OR CC0-1.0);Apache-2.0*;' +
-                'BSD-3-Clause OR MIT;(WTFPL OR MIT);Python-2.0',
+                'BSD-3-Clause OR MIT;(WTFPL OR MIT);Python-2.0;BlueOak-1.0.0',
                 result,
             ),
         );
 
         it('should not exit if list is complete', function () {
-            equal(result.exitCode, 0);
+            assert.equal(result.exitCode, 0);
         });
     });
 
@@ -359,7 +362,7 @@ describe('main tests', function () {
         before(parseAndFailOn('failOn', '../', 'MIT; ISC', result));
 
         it('should exit on MIT and ISC licensed modules from results', function () {
-            equal(result.exitCode, 1);
+            assert.equal(result.exitCode, 1);
         });
     });
 
@@ -368,16 +371,16 @@ describe('main tests', function () {
         before(parseAndFailOn('failOn', '../', 'ISC', result));
 
         it('should exit on ISC licensed modules from results', function () {
-            equal(result.exitCode, 1);
+            assert.equal(result.exitCode, 1);
         });
     });
 
     describe('should parse local and handle private modules', function () {
         let output;
         before(function (done) {
-            init(
+            checker.init(
                 {
-                    start: join(__dirname, './fixtures/privateModule'),
+                    start: path.join(__dirname, './fixtures/privateModule'),
                 },
                 function (err, filtered) {
                     output = filtered;
@@ -395,19 +398,19 @@ describe('main tests', function () {
                 }
             });
 
-            ok(privateModule);
+            assert.ok(privateModule);
         });
     });
 
     describe('should treat license file over custom urls', function () {
         it('should recognise a custom license at a url', function (done) {
-            init(
+            checker.init(
                 {
-                    start: join(__dirname, '../node_modules/locale'),
+                    start: path.join(__dirname, '../node_modules/locale'),
                 },
                 function (err, output) {
                     const item = output[Object.keys(output)[0]];
-                    equal(item.licenses, 'MIT*');
+                    assert.equal(item.licenses, 'MIT*');
                     done();
                 },
             );
@@ -417,9 +420,9 @@ describe('main tests', function () {
     describe('should treat URLs as custom licenses', function () {
         let output;
         before(function (done) {
-            init(
+            checker.init(
                 {
-                    start: join(__dirname, './fixtures/custom-license-url'),
+                    start: path.join(__dirname, './fixtures/custom-license-url'),
                 },
                 function (err, filtered) {
                     output = filtered;
@@ -434,16 +437,16 @@ describe('main tests', function () {
                 if (output[item].licenses && output[item].licenses === 'Custom: http://example.com/dummy-license')
                     foundCustomLicense = true;
             });
-            ok(foundCustomLicense);
+            assert.ok(foundCustomLicense);
         });
     });
 
     describe('should treat file references as custom licenses', function () {
         let output;
         before(function (done) {
-            init(
+            checker.init(
                 {
-                    start: join(__dirname, './fixtures/custom-license-file'),
+                    start: path.join(__dirname, './fixtures/custom-license-file'),
                 },
                 function (err, filtered) {
                     output = filtered;
@@ -458,31 +461,31 @@ describe('main tests', function () {
                 if (output[item].licenses && output[item].licenses === 'Custom: MY-LICENSE.md')
                     foundCustomLicense = true;
             });
-            ok(foundCustomLicense);
+            assert.ok(foundCustomLicense);
         });
     });
 
     describe('error handler', function () {
         it('should init without errors', function (done) {
-            init(
+            checker.init(
                 {
-                    start: join(__dirname, '../'),
+                    start: path.join(__dirname, '../'),
                     development: true,
                 },
                 function (err) {
-                    equal(err, null);
+                    assert.equal(err, null);
                     done();
                 },
             );
         });
 
         it('should init with errors (npm packages not found)', function (done) {
-            init(
+            checker.init(
                 {
                     start: 'C:\\',
                 },
                 function (err) {
-                    ok(isError(err));
+                    assert.ok(util.isError(err));
                     done();
                 },
             );
@@ -490,62 +493,60 @@ describe('main tests', function () {
     });
 
     describe('should parse with args', function () {
-        let args = require('../lib/args.js');
-
         it('should handle undefined', function () {
             const result = args.setDefaults(undefined);
-            equal(result.color, supportsColor);
-            equal(result.start, resolve(join(__dirname, '../')));
+            assert.equal(result.color, chalk.supportsColor);
+            assert.equal(result.start, path.resolve(path.join(__dirname, '../')));
         });
 
         it('should handle color undefined', function () {
-            const result = args.setDefaults({ color: undefined, start: resolve(join(__dirname, '../')) });
-            equal(result.color, supportsColor);
-            equal(result.start, resolve(join(__dirname, '../')));
+            const result = args.setDefaults({ color: undefined, start: path.resolve(path.join(__dirname, '../')) });
+            assert.equal(result.color, chalk.supportsColor);
+            assert.equal(result.start, path.resolve(path.join(__dirname, '../')));
         });
 
         it('should handle direct undefined', function () {
-            const result = args.setDefaults({ direct: undefined, start: resolve(join(__dirname, '../')) });
-            equal(result.direct, Infinity);
-            equal(result.start, resolve(join(__dirname, '../')));
+            const result = args.setDefaults({ direct: undefined, start: path.resolve(path.join(__dirname, '../')) });
+            assert.equal(result.direct, Infinity);
+            assert.equal(result.start, path.resolve(path.join(__dirname, '../')));
         });
 
         it('should handle direct true', function () {
-            const result = args.setDefaults({ direct: true, start: resolve(join(__dirname, '../')) });
-            equal(result.direct, Infinity);
-            equal(result.start, resolve(join(__dirname, '../')));
+            const result = args.setDefaults({ direct: true, start: path.resolve(path.join(__dirname, '../')) });
+            assert.equal(result.direct, Infinity);
+            assert.equal(result.start, path.resolve(path.join(__dirname, '../')));
         });
 
         it('should override direct option with depth option', function () {
-            const result = args.setDefaults({ direct: '9', depth: '99', start: resolve(join(__dirname, '../')) });
-            equal(result.direct, 99);
-            equal(result.start, resolve(join(__dirname, '../')));
+            const result = args.setDefaults({ direct: '9', depth: '99', start: path.resolve(path.join(__dirname, '../')) });
+            assert.equal(result.direct, 99);
+            assert.equal(result.start, path.resolve(path.join(__dirname, '../')));
         });
 
         it('should use depth for direct option when direct is not provided', function () {
-            const result = args.setDefaults({ depth: '99', start: resolve(join(__dirname, '../')) });
-            equal(result.direct, 99);
-            equal(result.start, resolve(join(__dirname, '../')));
+            const result = args.setDefaults({ depth: '99', start: path.resolve(path.join(__dirname, '../')) });
+            assert.equal(result.direct, 99);
+            assert.equal(result.start, path.resolve(path.join(__dirname, '../')));
         });
 
         ['json', 'markdown', 'csv', 'summary'].forEach(function (type) {
             it('should disable color on ' + type, function () {
                 let def = {
                     color: undefined,
-                    start: resolve(join(__dirname, '../')),
+                    start: path.resolve(path.join(__dirname, '../')),
                 };
                 def[type] = true;
                 const result = args.setDefaults(def);
-                equal(result.start, resolve(join(__dirname, '../')));
+                assert.equal(result.start, path.resolve(path.join(__dirname, '../')));
             });
         });
     });
 
     describe('custom formats', function () {
         it('should create a custom format using customFormat successfully', function (done) {
-            init(
+            checker.init(
                 {
-                    start: join(__dirname, '../'),
+                    start: path.join(__dirname, '../'),
                     customFormat: {
                         name: '<<Default Name>>',
                         description: '<<Default Description>>',
@@ -554,10 +555,10 @@ describe('main tests', function () {
                 },
                 function (err, d) {
                     Object.keys(d).forEach(function (item) {
-                        notEqual(d[item].name, undefined);
-                        notEqual(d[item].description, undefined);
-                        notEqual(d[item].pewpew, undefined);
-                        equal(d[item].pewpew, '<<Should Never be set>>');
+                        assert.notEqual(d[item].name, undefined);
+                        assert.notEqual(d[item].description, undefined);
+                        assert.notEqual(d[item].pewpew, undefined);
+                        assert.equal(d[item].pewpew, '<<Should Never be set>>');
                     });
                     done();
                 },
@@ -568,27 +569,27 @@ describe('main tests', function () {
             process.argv.push('--customPath');
             process.argv.push('./customFormatExample.json');
 
-            args = parse();
-            _start = join(__dirname, '../');
+            const parsed = args.parse();
+            parsed.start = path.join(__dirname, '../');
 
             process.argv.pop();
             process.argv.pop();
 
-            init(args, function (err, filtered) {
-                var customFormatContent = readFileSync(
-                    join(__dirname, './../customFormatExample.json'),
+            checker.init(parsed, function (err, filtered) {
+                var customFormatContent = fs.readFileSync(
+                    path.join(__dirname, './../customFormatExample.json'),
                     'utf8',
                 );
 
-                notEqual(customFormatContent, undefined);
-                notEqual(customFormatContent, null);
+                assert.notEqual(customFormatContent, undefined);
+                assert.notEqual(customFormatContent, null);
 
                 var customJson = JSON.parse(customFormatContent);
 
                 //Test dynamically with the file directly
                 Object.keys(filtered).forEach(function (licenseItem) {
                     Object.keys(customJson).forEach(function (definedItem) {
-                        notEqual(filtered[licenseItem][definedItem], 'undefined');
+                        assert.notEqual(filtered[licenseItem][definedItem], 'undefined');
                     });
                 });
                 done();
@@ -596,16 +597,16 @@ describe('main tests', function () {
         });
 
         it('should return data for keys with different names in json vs custom format', function (done) {
-            init(
+            checker.init(
                 {
-                    start: join(__dirname, './fixtures/author'),
+                    start: path.join(__dirname, './fixtures/author'),
                     customFormat: {
                         publisher: '',
                     },
                 },
                 function (err, filtered) {
-                    equal(Object.keys(filtered).length, 1);
-                    equal(filtered['license-checker-rseidelsohn@0.0.0'].publisher, 'Roman Seidelsohn');
+                    assert.equal(Object.keys(filtered).length, 1);
+                    assert.equal(filtered['license-checker-rseidelsohn@0.0.0'].publisher, 'Roman Seidelsohn');
                     done();
                 },
             );
@@ -614,15 +615,15 @@ describe('main tests', function () {
 
     describe('should output the module location', function () {
         it('as absolute path', function (done) {
-            init(
+            checker.init(
                 {
-                    start: join(__dirname, '../'),
+                    start: path.join(__dirname, '../'),
                 },
                 function (err, output) {
                     Object.keys(output).map(function (key) {
-                        const expectedPath = join(__dirname, '../');
+                        const expectedPath = path.join(__dirname, '../');
                         const actualPath = output[key].path.substr(0, expectedPath.length);
-                        equal(actualPath, expectedPath);
+                        assert.equal(actualPath, expectedPath);
                     });
                     done();
                 },
@@ -630,16 +631,16 @@ describe('main tests', function () {
         });
 
         it('using only relative paths if the option relativeModulePath is being used', function (done) {
-            init(
+            checker.init(
                 {
-                    start: join(__dirname, '../'),
+                    start: path.join(__dirname, '../'),
                     relativeModulePath: true,
                 },
                 function (err, output) {
-                    const rootPath = join(__dirname, '../');
+                    const rootPath = path.join(__dirname, '../');
                     Object.keys(output).forEach(function (key) {
                         const outputPath = output[key].path;
-                        strictEqual(
+                        assert.strictEqual(
                             outputPath.startsWith(rootPath),
                             false,
                             `Output path is not a relative path: ${outputPath}`,
@@ -653,9 +654,9 @@ describe('main tests', function () {
 
     describe('should output the location of the license files', function () {
         it('as absolute paths', function (done) {
-            init(
+            checker.init(
                 {
-                    start: join(__dirname, '../'),
+                    start: path.join(__dirname, '../'),
                 },
                 function (err, output) {
                     Object.keys(output)
@@ -666,9 +667,9 @@ describe('main tests', function () {
                             return dep.licenseFile !== undefined;
                         })
                         .forEach(function (dep) {
-                            const expectedPath = join(__dirname, '../');
+                            const expectedPath = path.join(__dirname, '../');
                             const actualPath = dep.licenseFile.substr(0, expectedPath.length);
-                            equal(actualPath, expectedPath);
+                            assert.equal(actualPath, expectedPath);
                         });
                     done();
                 },
@@ -676,9 +677,9 @@ describe('main tests', function () {
         });
 
         it('as relative paths when using relativeLicensePath', function (done) {
-            init(
+            checker.init(
                 {
-                    start: join(__dirname, '../'),
+                    start: path.join(__dirname, '../'),
                     relativeLicensePath: true,
                 },
                 function (err, filtered) {
@@ -690,7 +691,7 @@ describe('main tests', function () {
                             return dep.licenseFile !== undefined;
                         })
                         .forEach(function (dep) {
-                            notEqual(dep.licenseFile.substr(0, 1), '/');
+                            assert.notEqual(dep.licenseFile.substr(0, 1), '/');
                         });
                     done();
                 },
@@ -700,9 +701,9 @@ describe('main tests', function () {
 
     describe('handle copytight statement', function () {
         it('should output copyright statements when configured in custom format', function (done) {
-            init(
+            checker.init(
                 {
-                    start: join(__dirname, '../'),
+                    start: path.join(__dirname, '../'),
                     customFormat: {
                         copyright: '', // specify custom format
                         email: false,
@@ -713,7 +714,7 @@ describe('main tests', function () {
                 },
                 function (err, output) {
                     assert(output['abbrev@1.0.9'] !== undefined, 'Check if the expected package still exists.');
-                    equal(output['abbrev@1.0.9'].copyright, 'Copyright (c) Isaac Z. Schlueter and Contributors');
+                    assert.equal(output['abbrev@1.0.9'].copyright, 'Copyright (c) Isaac Z. Schlueter and Contributors');
                     done();
                 },
             );
@@ -723,9 +724,9 @@ describe('main tests', function () {
     describe('should only list UNKNOWN or guessed licenses successful', function () {
         let output;
         before(function (done) {
-            init(
+            checker.init(
                 {
-                    start: join(__dirname, '../'),
+                    start: path.join(__dirname, '../'),
                     onlyunknown: true,
                 },
                 function (err, sorted) {
@@ -746,15 +747,15 @@ describe('main tests', function () {
                     onlyStarsFound = false;
                 }
             });
-            ok(onlyStarsFound);
+            assert.ok(onlyStarsFound);
         });
     });
 
     function parseAndInclude(parsePath, licenses, result) {
         return function (done) {
-            init(
+            checker.init(
                 {
-                    start: join(__dirname, parsePath),
+                    start: path.join(__dirname, parsePath),
                     includeLicenses: licenses,
                 },
                 function (err, filtered) {
@@ -771,7 +772,7 @@ describe('main tests', function () {
 
         it('should include only BSD', function () {
             const output = result.output;
-            ok(Object.keys(output).length === 1);
+            assert.ok(Object.keys(output).length === 1);
         });
     });
 
@@ -781,16 +782,16 @@ describe('main tests', function () {
 
         it('should not include Apache', function () {
             const output = result.output;
-            ok(Object.keys(output).length === 0);
+            assert.ok(Object.keys(output).length === 0);
         });
     });
 
     describe('should only list UNKNOWN or guessed licenses with errors (argument missing)', function () {
         let output;
         before(function (done) {
-            init(
+            checker.init(
                 {
-                    start: join(__dirname, '../'),
+                    start: path.join(__dirname, '../'),
                     production: true,
                 },
                 function (err, sorted) {
@@ -812,7 +813,7 @@ describe('main tests', function () {
                     onlyStarsFound = false;
                 }
             });
-            equal(onlyStarsFound, false);
+            assert.equal(onlyStarsFound, false);
         });
     });
 
@@ -820,69 +821,69 @@ describe('main tests', function () {
         it('print a tree', function () {
             const log = console.log;
             console.log = function (data) {
-                ok(data);
-                ok(data.indexOf('└─') > -1);
+                assert.ok(data);
+                assert.ok(data.indexOf('└─') > -1);
             };
-            print([{}]);
+            checker.print([{}]);
             console.log = log;
         });
 
         it('as tree', function () {
-            const data = asTree([{}]);
-            ok(data);
-            ok(data.indexOf('└─') > -1);
+            const data = checker.asTree([{}]);
+            assert.ok(data);
+            assert.ok(data.indexOf('└─') > -1);
         });
 
         it('as csv', function () {
-            const data = asCSV({
+            const data = checker.asCSV({
                 foo: {
                     licenses: 'MIT',
                     repository: '/path/to/foo',
                 },
             });
-            ok(data);
-            ok(data.indexOf('"foo","MIT","/path/to/foo"') > -1);
+            assert.ok(data);
+            assert.ok(data.indexOf('"foo","MIT","/path/to/foo"') > -1);
         });
 
         it('as csv with partial data', function () {
-            const data = asCSV({
+            const data = checker.asCSV({
                 foo: {},
             });
-            ok(data);
-            ok(data.indexOf('"foo","",""') > -1);
+            assert.ok(data);
+            assert.ok(data.indexOf('"foo","",""') > -1);
         });
 
         it('as markdown', function () {
-            const data = asMarkDown({
+            const data = checker.asMarkDown({
                 foo: {
                     licenses: 'MIT',
                     repository: '/path/to/foo',
                 },
             });
-            ok(data);
-            ok(data.indexOf('[foo](/path/to/foo) - MIT') > -1);
+            assert.ok(data);
+            assert.ok(data.indexOf('[foo](/path/to/foo) - MIT') > -1);
         });
 
         it('as summary', function () {
-            const data = asSummary({
+            const data = checker.asSummary({
                 foo: {
                     licenses: 'MIT',
                     repository: '/path/to/foo',
                 },
             });
-            ok(data);
-            ok(data.indexOf('└─') > -1);
+            assert.ok(data);
+            assert.ok(data.indexOf('└─') > -1);
         });
 
         it('as files', function () {
-            const out = join(require('os').tmpdir(), 'lc');
+            const out = path.join(tmpdir(), 'lc');
             let files = null;
-            asFiles(
+            checker.asFiles(
                 {
                     foo: {
                         licenses: 'MIT',
                         repository: '/path/to/foo',
-                        licenseFile: join(__dirname, '../LICENSE'),
+                        licenseFile: path.join(__dirname, '../LICENSE'),
                     },
                     bar: {
                         licenses: 'MIT',
@@ -891,9 +892,9 @@ describe('main tests', function () {
                 out,
             );
 
-            files = readdirSync(out);
-            equal(files[0], 'foo-LICENSE.txt');
-            require('rimraf').sync(out);
+            files = fs.readdirSync(out);
+            assert.equal(files[0], 'foo-LICENSE.txt');
+            rimraf.sync(out);
         });
     });
 
@@ -903,9 +904,9 @@ describe('main tests', function () {
         before(function (done) {
             this.timeout(5000);
 
-            init(
+            checker.init(
                 {
-                    start: join(__dirname, './fixtures/includeBSD'),
+                    start: path.join(__dirname, './fixtures/includeBSD'),
                 },
                 function (err, sorted) {
                     output = sorted;
@@ -915,9 +916,9 @@ describe('main tests', function () {
         });
 
         it('an Angular CLI like plain vertical format', function () {
-            const data = asPlainVertical(output);
-            ok(data);
-            equal(
+            const data = checker.asPlainVertical(output);
+            assert.ok(data);
+            assert.equal(
                 data,
                 `bsd-3-module 0.0.0
 BSD-3-Clause
@@ -929,60 +930,60 @@ BSD-3-Clause
     describe('json parsing', function () {
         it('should parse json successfully (File exists + was json)', function () {
             const path = './tests/config/custom_format_correct.json';
-            const json = parseJson(path);
-            notEqual(json, undefined);
-            notEqual(json, null);
-            equal(json.licenseModified, 'no');
-            ok(json.licenseText);
+            const json = checker.parseJson(path);
+            assert.notEqual(json, undefined);
+            assert.notEqual(json, null);
+            assert.equal(json.licenseModified, 'no');
+            assert.ok(json.licenseText);
         });
 
         it('should parse json with errors (File exists + no json)', function () {
             const path = './tests/config/custom_format_broken.json';
-            const json = parseJson(path);
-            ok(json instanceof Error);
+            const json = checker.parseJson(path);
+            assert.ok(json instanceof Error);
         });
 
         it('should parse json with errors (File not found)', function () {
             const path = './NotExitingFile.json';
-            const json = parseJson(path);
-            ok(json instanceof Error);
+            const json = checker.parseJson(path);
+            assert.ok(json instanceof Error);
         });
 
         it('should parse json with errors (null passed)', function () {
-            const json = parseJson(null);
-            ok(json instanceof Error);
+            const json = checker.parseJson(null);
+            assert.ok(json instanceof Error);
         });
     });
 
     describe('limit attributes', function () {
         it('should filter attributes based on limitAttributes defined', function () {
             const path = './tests/config/custom_format_correct.json';
-            const json = parseJson(path);
+            const json = checker.parseJson(path);
 
-            const filteredJson = filterAttributes(['version', 'name'], json);
+            const filteredJson = checker.filterAttributes(['version', 'name'], json);
 
-            notStrictEqual(filteredJson.version, undefined);
-            notStrictEqual(filteredJson.name, undefined);
-            strictEqual(filteredJson.description, undefined);
-            strictEqual(filteredJson.licenses, undefined);
-            strictEqual(filteredJson.licenseFile, undefined);
-            strictEqual(filteredJson.licenseText, undefined);
-            strictEqual(filteredJson.licenseModified, undefined);
+            assert.notStrictEqual(filteredJson.version, undefined);
+            assert.notStrictEqual(filteredJson.name, undefined);
+            assert.strictEqual(filteredJson.description, undefined);
+            assert.strictEqual(filteredJson.licenses, undefined);
+            assert.strictEqual(filteredJson.licenseFile, undefined);
+            assert.strictEqual(filteredJson.licenseText, undefined);
+            assert.strictEqual(filteredJson.licenseModified, undefined);
         });
 
         it('should keep json as is if no outputColumns defined', function () {
             const path = './tests/config/custom_format_correct.json';
-            const json = parseJson(path);
+            const json = checker.parseJson(path);
 
-            const filteredJson = filterAttributes(null, json);
+            const filteredJson = checker.filterAttributes(null, json);
 
-            notStrictEqual(filteredJson.version, undefined);
-            notStrictEqual(filteredJson.name, undefined);
-            notStrictEqual(filteredJson.description, undefined);
-            notStrictEqual(filteredJson.licenses, undefined);
-            notStrictEqual(filteredJson.licenseFile, undefined);
-            notStrictEqual(filteredJson.licenseText, undefined);
-            notStrictEqual(filteredJson.licenseModified, undefined);
+            assert.notStrictEqual(filteredJson.version, undefined);
+            assert.notStrictEqual(filteredJson.name, undefined);
+            assert.notStrictEqual(filteredJson.description, undefined);
+            assert.notStrictEqual(filteredJson.licenses, undefined);
+            assert.notStrictEqual(filteredJson.licenseFile, undefined);
+            assert.notStrictEqual(filteredJson.licenseText, undefined);
+            assert.notStrictEqual(filteredJson.licenseModified, undefined);
         });
     });
 });

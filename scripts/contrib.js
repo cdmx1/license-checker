@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-import { join } from 'path';
-import format from 'format-package-json';
-import { GitContributors } from 'git-contributors';
+const join = require('path').join;
+const format = require('format-package-json');
+const GitContributors = require('git-contributors').GitContributors;
 const opts = join(__dirname, '../');
 const pkg = join(__dirname, '../package.json');
 const json = require(pkg);
