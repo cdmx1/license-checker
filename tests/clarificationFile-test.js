@@ -1,19 +1,17 @@
-import { createRequire } from "module";
-const require = createRequire(import.meta.url);
-const assert = require('assert');
-const path = require('path');
-const checker = require('../lib/index');
-const { describe } = require('node:test');
-const spawn = require('child_process').spawn;
+import { equal } from 'assert';
+import { join } from 'path';
+import { init } from '../lib/index';
+import { describe } from 'node:test';
+import { spawn } from 'child_process';
 
 
 describe('clarifications', function() {
     function parseAndClarify(parsePath, clarificationPath, result) {
         return function(done) {
-            checker.init(
+            init(
                 {
-                    start: path.join(__dirname, parsePath),
-                    clarificationsFile: path.join(__dirname, clarificationPath),
+                    start: join(__dirname, parsePath),
+                    clarificationsFile: join(__dirname, clarificationPath),
                     customFormat: {
                         "licenses": "",
                         "publisher": "",
@@ -40,15 +38,15 @@ describe('clarifications', function() {
     it('should replace existing license', function() {
         const output = result.output['license-checker-rseidelsohn@0.0.0'];
 
-        assert.equal(output.licenseText, "Some mild rephrasing of an MIT license");
-        assert.equal(output.licenses, "MIT");
+        equal(output.licenseText, "Some mild rephrasing of an MIT license");
+        equal(output.licenses, "MIT");
     });
 
 
     it('should exit 1 if the checksum does not match', function(done) {
         let data = "";
-        let license_checker = spawn('node', [path.join(__dirname, '../bin/license-checker-rseidelsohn'), '--start', path.join(__dirname, clarifications_path), '--clarificationsFile', path.join(__dirname, clarifications_path, 'mismatch/clarification.json')], {
-            cwd: path.join(__dirname, '../'),
+        let license_checker = spawn('node', [join(__dirname, '../bin/license-checker-rseidelsohn'), '--start', join(__dirname, clarifications_path), '--clarificationsFile', join(__dirname, clarifications_path, 'mismatch/clarification.json')], {
+            cwd: join(__dirname, '../'),
         });
 
         license_checker.stderr.on('data', function(stderr) {
@@ -56,8 +54,8 @@ describe('clarifications', function() {
         });
 
         license_checker.on('exit', function(code) {
-            assert.equal(code, 1);
-            assert.equal(data.includes("checksum mismatch"), true)
+            equal(code, 1);
+            equal(data.includes("checksum mismatch"), true)
             done();
         });
     });
@@ -66,8 +64,8 @@ describe('clarifications', function() {
     it('should succeed if no checksum is specified', function(done) {
         let data = "";
 
-        let license_checker = spawn('node', [path.join(__dirname, '../bin/license-checker-rseidelsohn'), '--start', path.join(__dirname, clarifications_path), '--clarificationsFile', path.join(__dirname, clarifications_path, 'example/noChecksum.json')], {
-            cwd: path.join(__dirname, '../'),
+        let license_checker = spawn('node', [join(__dirname, '../bin/license-checker-rseidelsohn'), '--start', join(__dirname, clarifications_path), '--clarificationsFile', join(__dirname, clarifications_path, 'example/noChecksum.json')], {
+            cwd: join(__dirname, '../'),
         });
 
         license_checker.stdout.on("data", function(stdout) {
@@ -75,9 +73,9 @@ describe('clarifications', function() {
         })
 
         license_checker.on('exit', function(code) {
-            assert.equal(code, 0);
-            assert.equal(data.includes("MIT"), true)
-            assert.equal(data.includes("MY_IP"), true)
+            equal(code, 0);
+            equal(data.includes("MIT"), true)
+            equal(data.includes("MY_IP"), true)
             done();
         });
     })
@@ -88,12 +86,12 @@ describe('clarifications', function() {
         let license_checker = spawn(
             'node',
             [
-                path.join(__dirname, '../bin/license-checker-rseidelsohn'),
-                '--start', path.join(__dirname, clarifications_path),
-                '--clarificationsFile', path.join(__dirname, clarifications_path, 'weirdStart/clarification.json'),
-                '--customPath', path.join(__dirname, clarifications_path, 'weirdStart/customFormat.json')
+                join(__dirname, '../bin/license-checker-rseidelsohn'),
+                '--start', join(__dirname, clarifications_path),
+                '--clarificationsFile', join(__dirname, clarifications_path, 'weirdStart/clarification.json'),
+                '--customPath', join(__dirname, clarifications_path, 'weirdStart/customFormat.json')
             ], {
-            cwd: path.join(__dirname, '../'),
+            cwd: join(__dirname, '../'),
         });
 
         license_checker.stdout.on("data", function(stdout) {
@@ -101,13 +99,13 @@ describe('clarifications', function() {
         })
 
         license_checker.on('exit', function(code) {
-            assert.equal(code, 0);
-            assert.equal(data.includes("README"), true)
-            assert.equal(data.includes("text text text describing the project"), false)
-            assert.equal(data.includes("# LICENSE"), true)
-            assert.equal(data.includes("Standard MIT license"), true)
-            assert.equal(data.includes("# And one more thing..."), false)
-            assert.equal(data.includes("More text AFTER the license because the real world is difficult :("), false)
+            equal(code, 0);
+            equal(data.includes("README"), true)
+            equal(data.includes("text text text describing the project"), false)
+            equal(data.includes("# LICENSE"), true)
+            equal(data.includes("Standard MIT license"), true)
+            equal(data.includes("# And one more thing..."), false)
+            equal(data.includes("More text AFTER the license because the real world is difficult :("), false)
             done();
         });
     })
@@ -118,12 +116,12 @@ describe('clarifications', function() {
         let license_checker = spawn(
             'node',
             [
-                path.join(__dirname, '../bin/license-checker-rseidelsohn'),
-                '--start', path.join(__dirname, clarifications_path),
-                '--clarificationsFile', path.join(__dirname, clarifications_path, 'weirdStart/startOnlyClarification.json'),
-                '--customPath', path.join(__dirname, clarifications_path, 'weirdStart/customFormat.json')
+                join(__dirname, '../bin/license-checker-rseidelsohn'),
+                '--start', join(__dirname, clarifications_path),
+                '--clarificationsFile', join(__dirname, clarifications_path, 'weirdStart/startOnlyClarification.json'),
+                '--customPath', join(__dirname, clarifications_path, 'weirdStart/customFormat.json')
             ], {
-            cwd: path.join(__dirname, '../'),
+            cwd: join(__dirname, '../'),
         });
 
         license_checker.stdout.on("data", function(stdout) {
@@ -131,13 +129,13 @@ describe('clarifications', function() {
         })
 
         license_checker.on('exit', function(code) {
-            assert.equal(code, 0);
-            assert.equal(data.includes("README"), true)
-            assert.equal(data.includes("text text text describing the project"), false)
-            assert.equal(data.includes("# LICENSE"), true)
-            assert.equal(data.includes("Standard MIT license"), true)
-            assert.equal(data.includes("# And one more thing..."), true)
-            assert.equal(data.includes("More text AFTER the license because the real world is difficult :("), true)
+            equal(code, 0);
+            equal(data.includes("README"), true)
+            equal(data.includes("text text text describing the project"), false)
+            equal(data.includes("# LICENSE"), true)
+            equal(data.includes("Standard MIT license"), true)
+            equal(data.includes("# And one more thing..."), true)
+            equal(data.includes("More text AFTER the license because the real world is difficult :("), true)
             done();
         });
     })

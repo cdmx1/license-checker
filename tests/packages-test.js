@@ -1,8 +1,6 @@
-import { createRequire } from "module";
-const require = createRequire(import.meta.url);
-const assert = require('assert');
-const path = require('path');
-const spawn = require('child_process').spawnSync;
+import { deepEqual, ok, equal } from 'assert';
+import { join } from 'path';
+import { spawnSync as spawn } from 'child_process';
 
 describe('bin/license-checker-rseidelsohn', function () {
     this.timeout(8000);
@@ -12,18 +10,18 @@ describe('bin/license-checker-rseidelsohn', function () {
         var output = spawn(
             'node',
             [
-                path.join(__dirname, '../bin/license-checker-rseidelsohn'),
+                join(__dirname, '../bin/license-checker-rseidelsohn'),
                 '--json',
                 '--includePackages',
                 restrictedPackages.join(';'),
             ],
             {
-                cwd: path.join(__dirname, '../'),
+                cwd: join(__dirname, '../'),
             },
         );
 
         console.log(output.stderr.toString());
-        assert.deepEqual(Object.keys(JSON.parse(output.stdout.toString())), restrictedPackages);
+        deepEqual(Object.keys(JSON.parse(output.stdout.toString())), restrictedPackages);
     });
 
     it('should exclude provided excludedPackages from the output', function () {
@@ -31,19 +29,19 @@ describe('bin/license-checker-rseidelsohn', function () {
         var output = spawn(
             'node',
             [
-                path.join(__dirname, '../bin/license-checker-rseidelsohn'),
+                join(__dirname, '../bin/license-checker-rseidelsohn'),
                 '--json',
                 '--excludePackages',
                 excludedPackages.join(';'),
             ],
             {
-                cwd: path.join(__dirname, '../'),
+                cwd: join(__dirname, '../'),
             },
         );
 
         var packages = Object.keys(JSON.parse(output.stdout.toString()));
         excludedPackages.forEach(function (pkg) {
-            assert.ok(!packages.includes(pkg));
+            ok(!packages.includes(pkg));
         });
     });
 
@@ -52,13 +50,13 @@ describe('bin/license-checker-rseidelsohn', function () {
         const output = spawn(
             'node',
             [
-                path.join(__dirname, '../bin/license-checker-rseidelsohn'),
+                join(__dirname, '../bin/license-checker-rseidelsohn'),
                 '--json',
                 '--excludePackagesStartingWith',
                 excludedPackages.join(';'),
             ],
             {
-                cwd: path.join(__dirname, '../'),
+                cwd: join(__dirname, '../'),
             },
         );
 
@@ -76,7 +74,7 @@ describe('bin/license-checker-rseidelsohn', function () {
         });
 
         // If an illegal package was found, the test fails
-        assert.ok(!illegalPackageFound);
+        ok(!illegalPackageFound);
     });
 
 
@@ -86,7 +84,7 @@ describe('bin/license-checker-rseidelsohn', function () {
         const output = spawn(
             'node',
             [
-                path.join(__dirname, '../bin/license-checker-rseidelsohn'),
+                join(__dirname, '../bin/license-checker-rseidelsohn'),
                 '--json',
                 '--excludePackages',
                 excludedNames.join(';'),
@@ -94,7 +92,7 @@ describe('bin/license-checker-rseidelsohn', function () {
                 excludedPrefix.join(';'),
             ],
             {
-                cwd: path.join(__dirname, '../'),
+                cwd: join(__dirname, '../'),
             },
         );
         const packages = Object.keys(JSON.parse(output.stdout.toString()));
@@ -118,19 +116,19 @@ describe('bin/license-checker-rseidelsohn', function () {
         });
 
         // If an illegal package was found, the test fails
-        assert.ok(!illegalPackageFound);
+        ok(!illegalPackageFound);
     });
 
     it('should exclude private packages from the output', function () {
         var output = spawn(
             'node',
-            [path.join(__dirname, '../bin/license-checker-rseidelsohn'), '--json', '--excludePrivatePackages'],
+            [join(__dirname, '../bin/license-checker-rseidelsohn'), '--json', '--excludePrivatePackages'],
             {
-                cwd: path.join(__dirname, 'fixtures', 'privateModule'),
+                cwd: join(__dirname, 'fixtures', 'privateModule'),
             },
         );
 
         var packages = Object.keys(JSON.parse(output.stdout.toString()));
-        assert.equal(packages.length, 0);
+        equal(packages.length, 0);
     });
 });
